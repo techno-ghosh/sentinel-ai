@@ -7,17 +7,18 @@ interface SecurityLogCardProps {
     severity: string;
     eventType: string;
     onCardClick: (id: number) => void;
+    isSelected: boolean;
 }
 
 
 
 
-function SecurityLogCard({ id,sourceIp,severity,eventType,onCardClick }: SecurityLogCardProps) {
+function SecurityLogCard({ id,sourceIp,severity,eventType,onCardClick,isSelected }: SecurityLogCardProps) {
     
     const [showDetails, setShowDetails] = useState(false);
     console.log(showDetails)
     return (
-        <article className="security-log-card">
+        <article className={`security-log-card ${ isSelected === true ? "selected" : "" }`}>
         <button onClick={() => setShowDetails(!showDetails)}> {showDetails ? "Hide details" : "Show Details" } </button>
         <button onClick={() =>onCardClick(id)}>Select Log</button>
         { showDetails && <div>

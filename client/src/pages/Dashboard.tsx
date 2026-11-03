@@ -1,4 +1,5 @@
 import SecurityLogCard from "../components/SecurityLogCard";
+import LogFileUpload from "../components/LogFileUpload";
 import { useEffect, useState } from "react";
 import type { SecurityLog } from "../types/SecurityLog";
 import { apiGet } from "../services/api";
@@ -55,7 +56,9 @@ function Dashboard() {
                     severity={log.severity} 
                     eventType={log.eventType}
                     onCardClick={handleCardClick}
+                    isSelected={log.id === selectedLogId}
                     />)) }
+                    <LogFileUpload />
             </section>
             
         </main>
