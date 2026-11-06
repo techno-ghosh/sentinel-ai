@@ -3,21 +3,33 @@ import busboy from "busboy";
 
 export function uploadLog(req: Request, res: Response) {
 
-    const bb = busboy({
-        headers : req.headers,
-        limits : {
-            fileSize: 10 * 1024 * 1024,
-            files : 1 // only one file can be uploaded at a time
-        }
-    });
 
-    let uploadError: "invalid_type" | "too_large" | "too_many_files" | "invalid_field" | null = null;
+    let bb: ReturnType<typeof busboy>;
+
+    try {
+
+         bb = busboy({
+                headers : req.headers,
+                limits : {
+                    fileSize: 10 * 1024 * 1024,
+                    files : 1 // only one file can be uploaded at a time
+                }
+            });
+
+    } catch(error) {
+        return res.status(400).json({
+            error: "Invalid multipart request"
+        })
+    }
+
+    let uploadError: "invalid_type" | "too_large" | "too_many_files" | "invalid_field" | "malformed_request" | null = null;
     let fileReceived = false;
+    let uploadInterrupted = false;
 
     bb.on("file", (fieldName, file, info) => {
         console.log("Received file: ", info.filename);
 
-        if(fieldName !== "file") {
+        if(fieldName !== "file" && uploadError === null) {
             uploadError = "invalid_field";
         }
 
@@ -30,20 +42,51 @@ export function uploadLog(req: Request, res: Response) {
             };
 
 
+
         file.on("limit",()=> {
             uploadError = "too_large";
+        })
+
+        file.on("end",() => {
+                    if(file.truncated) {
+                            uploadError = "too_large";
+                        }
+        })
+
+        file.on("error", (error: Error)=> {
+            console.error("File Stream Error: ", error);
+
+            if(!uploadInterrupted) {
+                uploadError = "malformed_request";
+            }
         })
 
         file.resume();
     })
 
     bb.on("filesLimit", ()=> {
-        if(uploadError === null) {
+
+        if(uploadError !== "too_large") {
             uploadError = "too_many_files";
         }
     })
 
+    bb.on("error",(error: Error)=>{
+            uploadError = "malformed_request";
+            console.error("Multipart parsing error: ",error.message)
+        })
+
     bb.on("close", ()=> {
+
+        if(uploadInterrupted || res.headersSent || res.destroyed) {
+            return;
+        }
+
+        if(uploadError === "malformed_request") {
+            return res.status(400).json({
+                error: "Malformed multipart request"
+            })
+        }
         
         if(uploadError === "too_large") {
            return res.status(413).json({
@@ -76,10 +119,19 @@ export function uploadLog(req: Request, res: Response) {
         }
 
 
-        res.status(200).json({
+        return res.status(200).json({
             message : "File uploaded successfully"
         })
 
+    })
+
+    req.on("close", ()=> {
+        if(req.complete === false) {
+            uploadInterrupted = true;
+            console.error("Upload interrupted")
+            req.unpipe(bb);
+            bb.destroy();
+        }
     })
 
     req.pipe(bb);
