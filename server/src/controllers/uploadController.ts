@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import busboy from "busboy";
+import { parseSSHLog } from "../parsers/sshParser";
 
 export function uploadLog(req: Request, res: Response) {
 
@@ -11,7 +12,7 @@ export function uploadLog(req: Request, res: Response) {
          bb = busboy({
                 headers : req.headers,
                 limits : {
-                    fileSize: 10 * 1024 * 1024,
+                    fileSize: 10 * 1024 * 1024 + 1,
                     files : 1 // only one file can be uploaded at a time
                 }
             });
@@ -28,6 +29,7 @@ export function uploadLog(req: Request, res: Response) {
 
     bb.on("file", (fieldName, file, info) => {
         console.log("Received file: ", info.filename);
+        let fileContent: string = "";
 
         if(fieldName !== "file" && uploadError === null) {
             uploadError = "invalid_field";
@@ -51,6 +53,10 @@ export function uploadLog(req: Request, res: Response) {
                     if(file.truncated) {
                             uploadError = "too_large";
                         }
+                const lines = fileContent.split(/\r?\n/).filter(line => line !== "");
+                lines.forEach(line => {
+                    console.log(parseSSHLog(line));
+                })
         })
 
         file.on("error", (error: Error)=> {
@@ -61,7 +67,12 @@ export function uploadLog(req: Request, res: Response) {
             }
         })
 
-        file.resume();
+        file.on("data",(chunk: Buffer) => {
+            console.log(chunk.toString());
+            fileContent+= chunk.toString();
+        })
+
+        // file.resume();
     })
 
     bb.on("filesLimit", ()=> {
