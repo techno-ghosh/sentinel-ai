@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { MAX_FILE_SIZE } from "../constants/upload";
+import { apiPost } from "../services/api";
 
 
 
 function LogFileUpload() {
     
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState<boolean>(false);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
     function handleFileChange(file: File): boolean {
         if(file.size > MAX_FILE_SIZE) {
@@ -29,6 +33,29 @@ function LogFileUpload() {
         return true;
     }
 
+    async function uploadFile() {
+        if(selectedFile === null) return;
+        setErrorMessage(null);
+        setSuccessMessage(null);
+        setIsUploading(true);
+
+        try {
+            const formData = new FormData();
+            formData.append("file",selectedFile);
+
+            await apiPost<unknown>("/api/logs/upload",formData);
+            setSuccessMessage("File Uploaded Successfully");
+        } catch(error) {
+
+            (error instanceof Error) ? setErrorMessage(error.message) : setErrorMessage("File Upload Failed")
+        
+        } finally {
+            setIsUploading(false);
+        }
+
+        
+    }
+
 
     return (
         <section>
@@ -41,8 +68,11 @@ function LogFileUpload() {
                         { event.target.value = "" }
                     } 
             }} />
-            <button>Upload File</button>
+            <button onClick={uploadFile} disabled={selectedFile === null || isUploading}>{ isUploading ? "Uploading" : "Upload File"}</button>
             { selectedFile && <p>{selectedFile.name}</p> }
+            { successMessage && <p>{successMessage}</p> }
+            { errorMessage && <p>{errorMessage}</p> }
+
         </section>
     )
 }
