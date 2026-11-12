@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import busboy from "busboy";
 import { parseSSHLog } from "../parsers/sshParser";
+import { SSHLogEvent } from "../types/SSHLogEvent";
 
 export function uploadLog(req: Request, res: Response) {
 
@@ -26,6 +27,7 @@ export function uploadLog(req: Request, res: Response) {
     let uploadError: "invalid_type" | "too_large" | "too_many_files" | "invalid_field" | "malformed_request" | null = null;
     let fileReceived = false;
     let uploadInterrupted = false;
+    const parsedEvents: SSHLogEvent[] = [];
 
     bb.on("file", (fieldName, file, info) => {
         console.log("Received file: ", info.filename);
@@ -53,9 +55,12 @@ export function uploadLog(req: Request, res: Response) {
                     if(file.truncated) {
                             uploadError = "too_large";
                         }
+                if(uploadError !== null) {
+                    return;
+                }
                 const lines = fileContent.split(/\r?\n/).filter(line => line !== "");
                 lines.forEach(line => {
-                    console.log(parseSSHLog(line));
+                    parsedEvents.push(parseSSHLog(line));
                 })
         })
 
@@ -68,7 +73,7 @@ export function uploadLog(req: Request, res: Response) {
         })
 
         file.on("data",(chunk: Buffer) => {
-            console.log(chunk.toString());
+            
             fileContent+= chunk.toString();
         })
 
@@ -131,7 +136,9 @@ export function uploadLog(req: Request, res: Response) {
 
 
         return res.status(200).json({
-            message : "File uploaded successfully"
+            message : "File uploaded and parsed successfully",
+            totalEvents: parsedEvents.length,
+            events: parsedEvents
         })
 
     })
