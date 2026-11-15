@@ -1,0 +1,51 @@
+.ssh-mobile-card {
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid #2d3748;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.ssh-mobile-card p {
+    margin: 0;
+}
+
+.ssh-mobile-card .ssh-mobile-timestamp {
+    color: #94a3b8;
+    font-size: 12px;
+    margin-top: 8px;
+    margin-bottom: 16px;
+}
+
+.ssh-mobile-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.ssh-mobile-detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.ssh-mobile-detail-row span:first-child {
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+.ssh-mobile-detail-row span:last-child {
+    color: #e2e8f0;
+    font-size: 14px;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+    text-align: right;
+}
+
+.ssh-mobile-divider {
+    border: none;
+    border-top: 1px solid #344155;
+    margin: 16px 0;
+}

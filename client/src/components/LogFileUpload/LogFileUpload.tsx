@@ -1,10 +1,15 @@
 import { useState } from "react";
-import { MAX_FILE_SIZE } from "../constants/upload";
-import { apiPost } from "../services/api";
+import { MAX_FILE_SIZE } from "../../constants/upload";
+import { apiPost } from "../../services/api";
+import type { SSHLogEvent } from "../../types/SSHLogEvent";
+import type { LogUploadResponse } from "../../types/LogUploadResponse";
+
+interface LogFileUploadProps{
+    onUploadSuccess: (events: SSHLogEvent[]) => void;
+}
 
 
-
-function LogFileUpload() {
+function LogFileUpload({ onUploadSuccess }: LogFileUploadProps) {
     
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState<boolean>(false);
@@ -42,8 +47,8 @@ function LogFileUpload() {
         try {
             const formData = new FormData();
             formData.append("file",selectedFile);
-
-            await apiPost<unknown>("/api/logs/upload",formData);
+            const response = await apiPost<LogUploadResponse<SSHLogEvent>>("/api/logs/upload",formData);
+            onUploadSuccess(response.events);
             setSuccessMessage("File Uploaded Successfully");
         } catch(error) {
 

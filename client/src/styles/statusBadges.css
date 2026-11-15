@@ -1,0 +1,15 @@
+
+.failed-box {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+}
+
+.success-box {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: #86efac;
+}
+
+.unknown-box {
+    background-color: rgba(148, 163, 184, 0.15);
+    color: #cbd5e1;
+}
