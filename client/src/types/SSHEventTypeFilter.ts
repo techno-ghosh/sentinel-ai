@@ -1,0 +1,1 @@
+export type SSHEventTypeFilter = "ALL" | "SSH_LOGIN_FAILED" | "SSH_LOGIN_SUCCESS" | "UNKNOWN";

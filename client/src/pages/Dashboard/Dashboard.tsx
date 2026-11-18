@@ -4,16 +4,26 @@ import type { SSHLogEvent } from "../../types/SSHLogEvent";
 import { SSHEventCard } from "../../components/SSHEventCard/SSHEventCard";
 import { SSHEventMobileCard } from "../../components/SSHEventMobileCard/SSHEventMobileCard";
 import "./Dashboard.css";
+import { SecurityLogFilters } from "../../components/SecurityLogFilters/SecurityLogFilters";
+import type { SSHEventTypeFilter } from "../../types/SSHEventTypeFilter";
 
 function Dashboard() {
 
   
     const [sshEvents, setSSHEvents] = useState<SSHLogEvent[]>([]);
+    const [searchQuery, setSearchQuery] = useState<string>("");
+    const [eventTypeFilter, setEventTypeFilter] = useState<SSHEventTypeFilter>("ALL");
 
 
     function handleUploadSuccess(events: SSHLogEvent[]) {
         setSSHEvents(events);
     }
+    const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+    const filteredEvents = sshEvents.filter((event)=> {
+        const matchesEventType = eventTypeFilter === "ALL" || eventTypeFilter === event.eventType
+        const matchesSearch = (event.sourceIp ?? "").toLowerCase().includes(normalizedSearchQuery) || (event.username ?? "").toLowerCase().includes(normalizedSearchQuery);
+        return matchesEventType && matchesSearch;
+    })
 
     return(
         <main className="dashboard">
@@ -25,6 +35,12 @@ function Dashboard() {
             </section>
             <section className="security-logs-panel">
                 <h2>Recent Security Logs</h2>
+                <SecurityLogFilters 
+                    searchQuery={searchQuery} 
+                    onSearchChange={setSearchQuery}  
+                    eventTypeFilter={eventTypeFilter}
+                    onEventTypeFilterChange={setEventTypeFilter}
+                    />
                 { sshEvents.length === 0 && <p>No security logs uploaded yet. Upload a .log or .txt file to begin.</p>  }
                 <div className="security-logs-table-wrapper">
                 <table className="security-logs-table">
@@ -39,7 +55,7 @@ function Dashboard() {
                         </tr>
                     </thead>
                     <tbody>
-                        { sshEvents.map((event,index) => (
+                        { filteredEvents.map((event,index) => (
                             <SSHEventCard 
                                     key={index} 
                                     event={event}/>
@@ -49,7 +65,7 @@ function Dashboard() {
                 </div>
                 <div className="security-logs-mobile">
                     {
-                        sshEvents.map((event,index) =>(
+                        filteredEvents.map((event,index) =>(
                             <SSHEventMobileCard event={event} key={index}/>
                         ))
                     }
