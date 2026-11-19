@@ -18,6 +18,12 @@ function Dashboard() {
     function handleUploadSuccess(events: SSHLogEvent[]) {
         setSSHEvents(events);
     }
+
+    function handleResetFilters() {
+        setSearchQuery("");
+        setEventTypeFilter("ALL");
+    }
+
     const normalizedSearchQuery = searchQuery.trim().toLowerCase();
     const filteredEvents = sshEvents.filter((event)=> {
         const matchesEventType = eventTypeFilter === "ALL" || eventTypeFilter === event.eventType
@@ -40,8 +46,10 @@ function Dashboard() {
                     onSearchChange={setSearchQuery}  
                     eventTypeFilter={eventTypeFilter}
                     onEventTypeFilterChange={setEventTypeFilter}
+                    onResetFilters={handleResetFilters}
                     />
                 { sshEvents.length === 0 && <p>No security logs uploaded yet. Upload a .log or .txt file to begin.</p>  }
+                { (sshEvents.length > 0 && filteredEvents.length === 0) && (<p>No Logs to show.</p>) }
                 <div className="security-logs-table-wrapper">
                 <table className="security-logs-table">
                     <thead>
@@ -70,6 +78,7 @@ function Dashboard() {
                         ))
                     }
                 </div>
+
 
                 
             </section>
