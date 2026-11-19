@@ -50,6 +50,9 @@
     font-size: 20px;
     font-weight: 600;
     color: #f1f5f9;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .security-logs-table td {
@@ -59,12 +62,6 @@
 .security-logs-table-wrapper {
     width: 100%;
     overflow-x: auto;
-}
-
-.security-logs-panel {
-    min-width: 0;
-    max-width: 100%;
-    box-sizing: border-box;
 }
 
 /* Desktop */
