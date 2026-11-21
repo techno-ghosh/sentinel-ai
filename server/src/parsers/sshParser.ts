@@ -5,7 +5,8 @@ export function parseSSHLog(sshLog: string):SSHLogEvent {
 
     
     const headerPattern = /^([A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})\s+(\S+)\s+sshd\[(\d+)\]:\s*/;
-    const headerMatch = sshLog.match(headerPattern);
+    const isoHeaderPattern = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2}))\s+(\S+)\s+sshd\[(\d+)\]:\s*/;
+    const headerMatch =  sshLog.match(isoHeaderPattern) ?? sshLog.match(headerPattern);
     if(headerMatch === null) {
         return {
             rawLog : sshLog,
@@ -18,8 +19,8 @@ export function parseSSHLog(sshLog: string):SSHLogEvent {
     const processId: SSHLogEvent["processId"] = Number(headerMatch[3]);
     const message: string = sshLog.slice(headerMatch[0].length)
 
-    const failedLoginPattern = /^Failed password for (?:invalid user )?(\S+) from (\S+) port (\d+) (ssh\d+)$/;
-    const successfulLoginPattern = /^Accepted (?:password|publickey) for (\S+) from (\S+) port (\d+) (ssh\d+)$/;
+    const failedLoginPattern = /^Failed (?:password|publickey) for (?:invalid user )?(\S+) from (\S+) port (\d+) (ssh\d+)(?:\s+.*)?$/;
+    const successfulLoginPattern = /^Accepted (?:password|publickey) for (\S+) from (\S+) port (\d+) (ssh\d+)(?:\s+.*)?$/;    
     const failedLoginMatch = message.match(failedLoginPattern)
     if( failedLoginMatch !== null) {
         return {

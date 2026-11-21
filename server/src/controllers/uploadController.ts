@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import busboy from "busboy";
 import { parseSSHLog } from "../parsers/sshParser";
 import { SSHLogEvent } from "../types/SSHLogEvent";
+import { detectBruteForce } from "../services/bruteForceDetection";
 
 export function uploadLog(req: Request, res: Response) {
 
@@ -134,11 +135,17 @@ export function uploadLog(req: Request, res: Response) {
             })
         }
 
+        const alerts = detectBruteForce(parsedEvents, {
+            threshold: 5,
+            windowSeconds: 60
+        }, 2026);
 
         return res.status(200).json({
             message : "File uploaded and parsed successfully",
             totalEvents: parsedEvents.length,
-            events: parsedEvents
+            events: parsedEvents,
+            totalAlerts: alerts.length,
+            alerts
         })
 
     })
