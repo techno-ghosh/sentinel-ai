@@ -28,7 +28,26 @@ export function uploadLog(req: Request, res: Response) {
     let uploadError: "invalid_type" | "too_large" | "too_many_files" | "invalid_field" | "malformed_request" | null = null;
     let fileReceived = false;
     let uploadInterrupted = false;
+    let logYear: string | undefined;
+    let timezoneOffset: string | undefined;
+    let invalidMetadata = false;
     const parsedEvents: SSHLogEvent[] = [];
+
+    bb.on("field", (name, value, info) => {
+    if (info.valueTruncated) {
+        invalidMetadata = true;
+    }
+
+    if (name === "year") {
+        if (logYear !== undefined) invalidMetadata = true;
+        logYear = value;
+    }
+
+    if (name === "timezoneOffset") {
+        if (timezoneOffset !== undefined) invalidMetadata = true;
+        timezoneOffset = value;
+    }
+    });
 
     bb.on("file", (fieldName, file, info) => {
         console.log("Received file: ", info.filename);
@@ -135,10 +154,36 @@ export function uploadLog(req: Request, res: Response) {
             })
         }
 
+        const hasContext =
+        logYear !== undefined || timezoneOffset !== undefined;
+
+        if (
+            invalidMetadata ||
+            (hasContext && (
+                !logYear ||
+                !/^\d{4}$/.test(logYear) ||
+                Number(logYear) < 1 ||
+                !timezoneOffset ||
+                !/^(Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/.test(timezoneOffset)
+            ))
+        ) {
+            return res.status(400).json({
+                error: "Invalid timestamp metadata"
+            });
+        }
+
+        const context =
+            logYear !== undefined && timezoneOffset !== undefined
+                ? {
+                    year: Number(logYear),
+                    timezoneOffset
+                }
+                : undefined;
+
         const alerts = detectBruteForce(parsedEvents, {
             threshold: 5,
             windowSeconds: 60
-        }, 2026);
+        }, context);
 
         return res.status(200).json({
             message : "File uploaded and parsed successfully",

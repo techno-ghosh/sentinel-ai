@@ -1,4 +1,5 @@
 import { SSHLogEvent } from "../types/SSHLogEvent";
+import { normalizeTimestamp, TimestampContext } from "../utils/timeStampNormalizer";
 
 export interface BruteForceConfig {
     threshold: number;
@@ -12,14 +13,14 @@ export interface BruteForceAlert {
     endTime: string;
 }
 
-export function detectBruteForce(events: SSHLogEvent[], config: BruteForceConfig, logYear: number): BruteForceAlert[] {
+export function detectBruteForce(events: SSHLogEvent[], config: BruteForceConfig, context?: TimestampContext): BruteForceAlert[] {
 
     const alerts: BruteForceAlert[] = [];
 
     const attemptsByIp = new Map<string, SSHLogEvent[]>();
 
     for(let event of events) {
-
+        
         if(event.eventType !== "SSH_LOGIN_FAILED" || !event.sourceIp || !event.timestamp) {
             continue;
         }
@@ -28,29 +29,28 @@ export function detectBruteForce(events: SSHLogEvent[], config: BruteForceConfig
             attemptsByIp.set(event.sourceIp, [])
         }
         attemptsByIp.get(event.sourceIp)?.push(event);
+        
 
     }
 
-    for(const [sourceIp, ipEvents] of attemptsByIp) {
-        const timestamps = ipEvents.map(event =>{
-            const timestamp = event.timestamp!; // the ! at the end is an assertion operator basically telling typescript, trust me, timestamp is not null or undefined.
 
-            if (!/^\d{4}-\d{2}-\d{2}T/.test(timestamp)) {
-                return NaN;
+    for(const [sourceIp, ipEvents] of attemptsByIp) {
+        const timestamps = ipEvents
+        .map(event => {
+            if (!event.timestamp) {
+                return null;
             }
 
-            return Date.parse(timestamp)
+            return normalizeTimestamp(event.timestamp, context);
         })
-        .filter(Number.isFinite)
-        .sort((a,b) => a - b)
-
+        .filter((timestamp): timestamp is number => timestamp !== null)
+        .sort((a, b) => a - b);
         let left = 0;
         let alertGenerated = false;
         let activeAlert: BruteForceAlert | null = null;
         let episodeStart = 0;
 
         for (let right =0; right < timestamps.length; right++) {
-
                 if (
                     right > 0 &&
                     timestamps[right] - timestamps[right - 1] > config.windowSeconds * 1000
