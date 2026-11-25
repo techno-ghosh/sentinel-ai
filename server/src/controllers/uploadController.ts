@@ -6,6 +6,13 @@ import { detectBruteForce } from "../services/bruteForceDetection";
 
 export function uploadLog(req: Request, res: Response) {
 
+    const contentType = req.headers["content-type"];
+
+    if (contentType?.split(";")[0].trim().toLowerCase() !== "multipart/form-data") {
+        return res.status(415).json({
+            error: "Content type must be multipart/form-data"
+        });
+    }
 
     let bb: ReturnType<typeof busboy>;
 
@@ -20,6 +27,7 @@ export function uploadLog(req: Request, res: Response) {
             });
 
     } catch(error) {
+        console.log(error)
         return res.status(400).json({
             error: "Invalid multipart request"
         })
@@ -180,7 +188,9 @@ export function uploadLog(req: Request, res: Response) {
                 }
                 : undefined;
 
-        const alerts = detectBruteForce(parsedEvents, {
+        try {
+        
+        const {alerts, skippedTimestamps} = detectBruteForce(parsedEvents, {
             threshold: 5,
             windowSeconds: 60
         }, context);
@@ -190,8 +200,18 @@ export function uploadLog(req: Request, res: Response) {
             totalEvents: parsedEvents.length,
             events: parsedEvents,
             totalAlerts: alerts.length,
-            alerts
+            alerts,
+            skippedTimestamps
         })
+
+        } catch(error) {
+            console.error("Brute-force detection failed:", error);
+            return res.status(500).json({
+                "error": "Failed to analyze uploaded logs"
+            })
+
+        }
+
 
     })
 

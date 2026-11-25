@@ -1,5 +1,5 @@
 import { SSHLogEvent } from "../types/SSHLogEvent";
-import { normalizeTimestamp, TimestampContext } from "../utils/timeStampNormalizer";
+import { normalizeTimestamp, TimestampContext } from "../utils/timestampNormalizer";
 
 export interface BruteForceConfig {
     threshold: number;
@@ -13,15 +13,32 @@ export interface BruteForceAlert {
     endTime: string;
 }
 
-export function detectBruteForce(events: SSHLogEvent[], config: BruteForceConfig, context?: TimestampContext): BruteForceAlert[] {
+export interface BruteForceResult {
+    alerts: BruteForceAlert[];
+    skippedTimestamps: number;
+}
+
+export function detectBruteForce(events: SSHLogEvent[], config: BruteForceConfig, context?: TimestampContext): BruteForceResult {
+
+    if(!Number.isInteger(config.threshold) || config.threshold <= 0) {
+        throw new RangeError("Invalid threshold value")
+    }
+    if(!Number.isFinite(config.windowSeconds) || config.windowSeconds <= 0) {
+        throw new RangeError("Invalid window seconds value")
+    }
 
     const alerts: BruteForceAlert[] = [];
+    let skippedTimestamps = 0;
 
     const attemptsByIp = new Map<string, SSHLogEvent[]>();
 
     for(let event of events) {
         
-        if(event.eventType !== "SSH_LOGIN_FAILED" || !event.sourceIp || !event.timestamp) {
+        if(event.eventType !== "SSH_LOGIN_FAILED" || !event.sourceIp) {
+            continue;
+        }
+        if(!event.timestamp) {
+            skippedTimestamps++;
             continue;
         }
 
@@ -41,7 +58,13 @@ export function detectBruteForce(events: SSHLogEvent[], config: BruteForceConfig
                 return null;
             }
 
-            return normalizeTimestamp(event.timestamp, context);
+            const normalizedTimestamp = normalizeTimestamp(event.timestamp, context);
+            if(normalizedTimestamp === null ) {
+                skippedTimestamps++;
+                return normalizedTimestamp;
+            }
+
+            return normalizedTimestamp
         })
         .filter((timestamp): timestamp is number => timestamp !== null)
         .sort((a, b) => a - b);
@@ -92,6 +115,9 @@ export function detectBruteForce(events: SSHLogEvent[], config: BruteForceConfig
     
 
 
-     return alerts;
+     return {
+        alerts,
+        skippedTimestamps
+     };
 
 }
